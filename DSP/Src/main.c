@@ -50,7 +50,8 @@
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
-
+uint8_t button1_flag = 0;
+uint8_t button2_flag = 0;
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
 
@@ -90,16 +91,16 @@ void LED_PWM(uint8_t timer_number, uint8_t timer_channel, uint8_t Duty)
 		switch(timer_channel)
 		{
 		case 1:
-			TIM3->CCR1 = Duty;
+			TIM4->CCR1 = Duty;
 			break;
 		case 2:
-			TIM3->CCR2 = Duty;
+			TIM4->CCR2 = Duty;
 			break;
 		case 3:
-			TIM3->CCR3 = Duty;
+			TIM4->CCR3 = Duty;
 			break;
 		case 4:
-			TIM3->CCR4 = Duty;
+			TIM4->CCR4 = Duty;
 			break;
 		default:
 			break;
@@ -109,19 +110,8 @@ void LED_PWM(uint8_t timer_number, uint8_t timer_channel, uint8_t Duty)
 
 void LED_Sweep(void)
 {
-	LED_PWM(4, 1, 100);
-	HAL_Delay(150);
-	LED_PWM(4, 2, 100);
-	LED_PWM(4, 1, 0);
-	HAL_Delay(150);
-	LED_PWM(4, 3, 100);
-	LED_PWM(4, 2, 0);
-	HAL_Delay(150);
-	LED_PWM(4, 4, 100);
-	LED_PWM(4, 3, 0);
-	HAL_Delay(150);
+
 	LED_PWM(3, 1, 100);
-	LED_PWM(4, 4, 0);
 	HAL_Delay(150);
 	LED_PWM(3, 2, 100);
 	LED_PWM(3, 1, 0);
@@ -133,6 +123,19 @@ void LED_Sweep(void)
 	LED_PWM(3, 3, 0);
 	HAL_Delay(150);
 
+	LED_PWM(4, 4, 100);
+	LED_PWM(3, 4, 0);
+	HAL_Delay(150);
+	LED_PWM(4, 3, 100);
+	LED_PWM(4, 4, 0);
+	HAL_Delay(150);
+
+	LED_PWM(4, 4, 100);
+	LED_PWM(4, 3, 0);
+	HAL_Delay(150);
+	LED_PWM(3, 4, 100);
+	LED_PWM(4, 4, 0);
+	HAL_Delay(150);
 	LED_PWM(3, 3, 100);
 	LED_PWM(3, 4, 0);
 	HAL_Delay(150);
@@ -142,19 +145,41 @@ void LED_Sweep(void)
 	LED_PWM(3, 1, 100);
 	LED_PWM(3, 2, 0);
 	HAL_Delay(150);
-	LED_PWM(4, 4, 100);
 	LED_PWM(3, 1, 0);
-	HAL_Delay(150);
-	LED_PWM(4, 3, 100);
-	LED_PWM(4, 4, 0);
-	HAL_Delay(150);
-	LED_PWM(4, 2, 100);
-	LED_PWM(4, 3, 0);
-	HAL_Delay(150);
-	LED_PWM(4, 1, 100);
-	LED_PWM(4, 2, 0);
-	HAL_Delay(150);
-	LED_PWM(4, 1, 0);
+
+}
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
+
+
+ if(GPIO_Pin == Button1_Pin)
+ {
+	 if(button1_flag == 0)
+	 {
+		 LED_PWM(4, 1, 100);
+		 button1_flag = 1;
+	 }
+	 else
+	 {
+		 LED_PWM(4, 1, 0);
+		 button1_flag = 0;
+	 }
+ }
+ else if(GPIO_Pin == Button2_Pin)
+ {
+	 if(button2_flag == 0)
+	 {
+		 LED_PWM(4, 2, 40);
+		 button2_flag = 1;
+	 }
+	 else
+	 {
+		 LED_PWM(4, 2, 0);
+		 button2_flag = 0;
+	 }
+
+
+ }
 
 }
 
@@ -214,13 +239,18 @@ int main(void)
   HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_4);
 
 
+
+
+  LED_Sweep();
+
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  LED_Sweep();
+
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
