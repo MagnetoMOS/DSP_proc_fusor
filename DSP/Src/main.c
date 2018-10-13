@@ -62,12 +62,26 @@ void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
 
-void LED_PWM(uint8_t timer_number, uint8_t timer_channel, uint8_t duty)
+void LED_PWM(uint8_t timer_number, uint8_t timer_channel, uint8_t Duty)
 {
 	if(timer_number == 3)
 	{
 		switch(timer_channel)
 		{
+		case 1:
+			TIM3->CCR1 = Duty;
+			break;
+		case 2:
+			TIM3->CCR2 = Duty;
+			break;
+		case 3:
+			TIM3->CCR3 = Duty;
+			break;
+		case 4:
+			TIM3->CCR4 = Duty;
+			break;
+		default:
+			break;
 
 		}
 	}
@@ -75,9 +89,73 @@ void LED_PWM(uint8_t timer_number, uint8_t timer_channel, uint8_t duty)
 	{
 		switch(timer_channel)
 		{
-
+		case 1:
+			TIM3->CCR1 = Duty;
+			break;
+		case 2:
+			TIM3->CCR2 = Duty;
+			break;
+		case 3:
+			TIM3->CCR3 = Duty;
+			break;
+		case 4:
+			TIM3->CCR4 = Duty;
+			break;
+		default:
+			break;
 		}
 	}
+}
+
+void LED_Sweep(void)
+{
+	LED_PWM(4, 1, 100);
+	HAL_Delay(150);
+	LED_PWM(4, 2, 100);
+	LED_PWM(4, 1, 0);
+	HAL_Delay(150);
+	LED_PWM(4, 3, 100);
+	LED_PWM(4, 2, 0);
+	HAL_Delay(150);
+	LED_PWM(4, 4, 100);
+	LED_PWM(4, 3, 0);
+	HAL_Delay(150);
+	LED_PWM(3, 1, 100);
+	LED_PWM(4, 4, 0);
+	HAL_Delay(150);
+	LED_PWM(3, 2, 100);
+	LED_PWM(3, 1, 0);
+	HAL_Delay(150);
+	LED_PWM(3, 3, 100);
+	LED_PWM(3, 2, 0);
+	HAL_Delay(150);
+	LED_PWM(3, 4, 100);
+	LED_PWM(3, 3, 0);
+	HAL_Delay(150);
+
+	LED_PWM(3, 3, 100);
+	LED_PWM(3, 4, 0);
+	HAL_Delay(150);
+	LED_PWM(3, 2, 100);
+	LED_PWM(3, 3, 0);
+	HAL_Delay(150);
+	LED_PWM(3, 1, 100);
+	LED_PWM(3, 2, 0);
+	HAL_Delay(150);
+	LED_PWM(4, 4, 100);
+	LED_PWM(3, 1, 0);
+	HAL_Delay(150);
+	LED_PWM(4, 3, 100);
+	LED_PWM(4, 4, 0);
+	HAL_Delay(150);
+	LED_PWM(4, 2, 100);
+	LED_PWM(4, 3, 0);
+	HAL_Delay(150);
+	LED_PWM(4, 1, 100);
+	LED_PWM(4, 2, 0);
+	HAL_Delay(150);
+	LED_PWM(4, 1, 0);
+
 }
 
 /* USER CODE END PFP */
@@ -142,7 +220,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-
+	  LED_Sweep();
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
