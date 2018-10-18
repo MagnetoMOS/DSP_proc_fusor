@@ -50,8 +50,9 @@
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
-uint8_t button1_flag = 0;
-uint8_t button2_flag = 0;
+volatile uint8_t button1_flag = 0;
+volatile uint8_t button2_flag = 0;
+volatile uint8_t Duty = 0;
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
 
@@ -183,6 +184,32 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 
 }
 
+void HAL_SYSTICK_Callback(void)
+{
+
+		static uint8_t InterruptPrescaler = 0; // licznik przerwan
+		 static uint8_t CzyRosnie = 1; // Flaga kierunku zliczania
+
+		 ++InterruptPrescaler; // Inkrementacja numeru przerwania
+
+		 // Jezeli wywolalo sie 40 przerwanie z rzedu
+		 if (InterruptPrescaler == 10) {
+		 InterruptPrescaler = 0; // wyzeruj licznik przerwan
+
+		 if (Duty == 100) // Jezeli wypelnienie jest rowne 100
+		 CzyRosnie = 0; // Zmien kierunek zliczania w dol
+
+		 else if (Duty == 0) // Jezeli wypelnienie rowne 0
+		 CzyRosnie = 1; // Zmien kierunek zliczania w gore
+
+		 if (CzyRosnie) // Jezeli zliczamy w gore
+		 ++Duty; // Inkrementuj wartosc wypelnienia
+		 else//Jezeli zliczamy w dol
+		 --Duty; // Dekrementuj wartosc wypelnienia
+		 }
+		 TIM3->CCR1 = Duty;
+	}
+
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
@@ -228,6 +255,8 @@ int main(void)
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
 
+
+
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2);
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_3);
@@ -239,10 +268,8 @@ int main(void)
   HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_4);
 
 
-
-
   LED_Sweep();
-
+  HAL_TIM_Base_Start_IT(&htim3);
 
   /* USER CODE END 2 */
 
