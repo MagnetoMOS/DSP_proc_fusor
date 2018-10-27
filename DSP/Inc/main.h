@@ -61,12 +61,6 @@
 #define Signal1_GPIO_Port GPIOC
 #define Signal2_Pin GPIO_PIN_1
 #define Signal2_GPIO_Port GPIOC
-#define NTC1_Pin GPIO_PIN_2
-#define NTC1_GPIO_Port GPIOC
-#define NTC2_Pin GPIO_PIN_3
-#define NTC2_GPIO_Port GPIOC
-#define Signal3_Pin GPIO_PIN_0
-#define Signal3_GPIO_Port GPIOA
 #define LED8_Pin GPIO_PIN_12
 #define LED8_GPIO_Port GPIOD
 #define LED7_Pin GPIO_PIN_13
@@ -77,10 +71,8 @@
 #define LED5_GPIO_Port GPIOD
 #define Button2_Pin GPIO_PIN_6
 #define Button2_GPIO_Port GPIOC
-#define Button2_EXTI_IRQn EXTI9_5_IRQn
 #define Button1_Pin GPIO_PIN_7
 #define Button1_GPIO_Port GPIOC
-#define Button1_EXTI_IRQn EXTI9_5_IRQn
 
 /* ########################## Assert Selection ############################## */
 /**

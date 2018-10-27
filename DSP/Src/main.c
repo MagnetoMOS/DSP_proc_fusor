@@ -40,6 +40,7 @@
 #include "main.h"
 #include "stm32l4xx_hal.h"
 #include "adc.h"
+#include "dma.h"
 #include "i2c.h"
 #include "tim.h"
 #include "usart.h"
@@ -50,11 +51,29 @@
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
-volatile uint8_t button1_flag = 0;
-volatile uint8_t button2_flag = 0;
-volatile uint8_t Duty = 0;
+
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
+uint8_t Duty = 0;
+uint8_t button1_flag = 0;
+uint8_t button2_flag = 0;
+uint8_t Tx_flag = 0;
+uint8_t Tx_flag_2 = 0;
+
+uint8_t Rx_flag = 0;
+uint8_t Rx_flag_2 = 0;
+uint8_t Received[10];
+uint8_t Transmit[] = {2, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+uint16_t PomiarADC[1];
+float Temperature;
+float Vsense;
+
+char* buffer="hello!\n\r";
+
+const float V25 = 0.76; // [Volts]
+const float SupplyVoltage = 3.0; // [Volts]
+const float ADCResolution = 4096.0;
+
 
 /* USER CODE END PV */
 
@@ -64,12 +83,9 @@ void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
 
-void LED_PWM(uint8_t timer_number, uint8_t timer_channel, uint8_t Duty)
-{
-	if(timer_number == 3)
-	{
-		switch(timer_channel)
-		{
+void LED_PWM(uint8_t timer_number, uint8_t timer_channel, uint8_t Duty) {
+	if (timer_number == 3) {
+		switch (timer_channel) {
 		case 1:
 			TIM3->CCR1 = Duty;
 			break;
@@ -86,11 +102,8 @@ void LED_PWM(uint8_t timer_number, uint8_t timer_channel, uint8_t Duty)
 			break;
 
 		}
-	}
-	else if(timer_number == 4)
-	{
-		switch(timer_channel)
-		{
+	} else if (timer_number == 4) {
+		switch (timer_channel) {
 		case 1:
 			TIM4->CCR1 = Duty;
 			break;
@@ -109,8 +122,7 @@ void LED_PWM(uint8_t timer_number, uint8_t timer_channel, uint8_t Duty)
 	}
 }
 
-void LED_Sweep(void)
-{
+void LED_Sweep(void) {
 
 	LED_PWM(3, 1, 100);
 	HAL_Delay(150);
@@ -150,66 +162,84 @@ void LED_Sweep(void)
 
 }
 
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 
+	if (GPIO_Pin == Button1_Pin) {
+		if (button1_flag == 0) {
+			LED_PWM(4, 1, 100);
+			button1_flag = 1;
+		} else {
+			LED_PWM(4, 1, 0);
+			button1_flag = 0;
+		}
+	} else if (GPIO_Pin == Button2_Pin) {
+		if (button2_flag == 0) {
+			LED_PWM(4, 2, 40);
+			button2_flag = 1;
+		} else {
+			LED_PWM(4, 2, 0);
+			button2_flag = 0;
+		}
 
- if(GPIO_Pin == Button1_Pin)
- {
-	 if(button1_flag == 0)
-	 {
-		 LED_PWM(4, 1, 100);
-		 button1_flag = 1;
-	 }
-	 else
-	 {
-		 LED_PWM(4, 1, 0);
-		 button1_flag = 0;
-	 }
- }
- else if(GPIO_Pin == Button2_Pin)
- {
-	 if(button2_flag == 0)
-	 {
-		 LED_PWM(4, 2, 40);
-		 button2_flag = 1;
-	 }
-	 else
-	 {
-		 LED_PWM(4, 2, 0);
-		 button2_flag = 0;
-	 }
-
-
- }
+	}
 
 }
 
-void HAL_SYSTICK_Callback(void)
+void HAL_SYSTICK_Callback(void) {
+
+	static uint8_t InterruptPrescaler = 0; // licznik przerwan
+	static uint8_t CzyRosnie = 1; // Flaga kierunku zliczania
+
+	++InterruptPrescaler; // Inkrementacja numeru przerwania
+
+	// Jezeli wywolalo sie 40 przerwanie z rzedu
+	if (InterruptPrescaler == 40) {
+		InterruptPrescaler = 0; // wyzeruj licznik przerwan
+
+		if (Duty == 100) // Jezeli wypelnienie jest rowne 100
+			CzyRosnie = 0; // Zmien kierunek zliczania w dol
+
+		else if (Duty == 0) // Jezeli wypelnienie rowne 0
+			CzyRosnie = 1; // Zmien kierunek zliczania w gore
+
+		if (CzyRosnie) // Jezeli zliczamy w gore
+			++Duty; // Inkrementuj wartosc wypelnienia
+		else
+			//Jezeli zliczamy w dol
+			--Duty; // Dekrementuj wartosc wypelnienia
+
+		Tx_flag ++;
+		Tx_flag_2 = 1;
+
+		 uint8_t Data[40]; // Tablica przechowujaca wysylana wiadomosc.
+
+		// sprintf(Data, "Odebrana wiadomosc: %s\n\r", 10);
+		// HAL_UART_Transmit(&huart1, Transmit, 10, 100); // Rozpoczecie nadawania danych z wykorzystaniem przerwan
+	}
+	TIM3->CCR3 = Duty;
+
+
+
+
+}
+
+/*void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
+
+	PomiarADC = HAL_ADC_GetValue(&hadc1);
+	Vsense = (SupplyVoltage * PomiarADC) / (ADCResolution - 1);
+}*/
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 
-		static uint8_t InterruptPrescaler = 0; // licznik przerwan
-		 static uint8_t CzyRosnie = 1; // Flaga kierunku zliczania
 
-		 ++InterruptPrescaler; // Inkrementacja numeru przerwania
+}
 
-		 // Jezeli wywolalo sie 40 przerwanie z rzedu
-		 if (InterruptPrescaler == 10) {
-		 InterruptPrescaler = 0; // wyzeruj licznik przerwan
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim4) {
 
-		 if (Duty == 100) // Jezeli wypelnienie jest rowne 100
-		 CzyRosnie = 0; // Zmien kierunek zliczania w dol
 
-		 else if (Duty == 0) // Jezeli wypelnienie rowne 0
-		 CzyRosnie = 1; // Zmien kierunek zliczania w gore
 
-		 if (CzyRosnie) // Jezeli zliczamy w gore
-		 ++Duty; // Inkrementuj wartosc wypelnienia
-		 else//Jezeli zliczamy w dol
-		 --Duty; // Dekrementuj wartosc wypelnienia
-		 }
-		 TIM3->CCR1 = Duty;
-	}
-
+}
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
@@ -245,44 +275,63 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
+  MX_ADC1_Init();
+  MX_ADC2_Init();
+  MX_ADC3_Init();
+  MX_I2C1_Init();
   MX_TIM3_Init();
   MX_TIM4_Init();
-  MX_ADC1_Init();
-  MX_ADC3_Init();
-  MX_ADC2_Init();
-  MX_I2C1_Init();
   MX_USART2_UART_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
 
+	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2);
+	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_3);
+	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_4);
+
+	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
+	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_2);
+	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_3);
+	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_4);
+
+	LED_Sweep();
+	HAL_TIM_Base_Start_IT(&htim3);
+	HAL_TIM_Base_Start_IT(&htim4);
+
+	//HAL_ADC_Start_IT(&hadc1);
 
 
-  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
-  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2);
-  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_3);
-  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_4);
-
-  HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
-  HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_2);
-  HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_3);
-  HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_4);
-
-
-  LED_Sweep();
-  HAL_TIM_Base_Start_IT(&htim3);
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (1)
-  {
+	while (1) {
+
+
+		HAL_UART_Transmit_IT(&huart1, (uint8_t *)buffer,8);
+		HAL_Delay(250);
+/*
+	if(Tx_flag_2 == 1)
+	{
+		Tx_flag_2 = 0;
+		static uint16_t cnt = 0; // Licznik wyslanych wiadomosci
+		 uint8_t data[50];// Tablica przechowujaca wysylana wiadomosc.
+		 uint16_t size = 0; // Rozmiar wysylanej wiadomosci ++cnt; // Zwiekszenie licznika wyslanych wiadomosci.
+
+		 ++cnt; // Zwiekszenie licznika wyslanych wiadomosci.
+		 size = sprintf(data, "Liczba wyslanych wiadomosci: %d.\n\r", cnt); // Stworzenie wiadomosci do wyslania oraz przypisanie ilosci wysylanych znakow do zmiennej size.
+		 HAL_UART_Transmit_IT(&huart1, data, size);
+
+	}*/
 
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
 
-  }
+	}
   /* USER CODE END 3 */
 
 }
@@ -380,10 +429,9 @@ void SystemClock_Config(void)
 void _Error_Handler(char *file, int line)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
-  while(1)
-  {
-  }
+	/* User can add his own implementation to report the HAL error return state */
+	while (1) {
+	}
   /* USER CODE END Error_Handler_Debug */
 }
 
@@ -398,8 +446,8 @@ void _Error_Handler(char *file, int line)
 void assert_failed(uint8_t* file, uint32_t line)
 { 
   /* USER CODE BEGIN 6 */
-  /* User can add his own implementation to report the file name and line number,
-     tex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+	/* User can add his own implementation to report the file name and line number,
+	 tex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
